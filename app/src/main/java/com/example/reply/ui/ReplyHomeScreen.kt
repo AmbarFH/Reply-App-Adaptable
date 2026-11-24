@@ -1,18 +1,3 @@
-/*
- * Copyright (C) 2023 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.example.reply.ui
 
 import androidx.compose.animation.AnimatedVisibility
@@ -56,11 +41,13 @@ import com.example.reply.R
 import com.example.reply.data.Email
 import com.example.reply.data.MailboxType
 import com.example.reply.data.local.LocalAccountsDataProvider
+import com.example.reply.ui.utils.ReplyContentType
 import com.example.reply.ui.utils.ReplyNavigationType
 
 @Composable
 fun ReplyHomeScreen(
     navigationType: ReplyNavigationType,
+    contentType: ReplyContentType,
     replyUiState: ReplyUiState,
     onTabPressed: (MailboxType) -> Unit,
     onEmailCardPressed: (Email) -> Unit,
@@ -89,13 +76,14 @@ fun ReplyHomeScreen(
             text = stringResource(id = R.string.tab_spam)
         )
     )
-    if (navigationType == ReplyNavigationType.PERMANENT_NAVIGATION_DRAWER && replyUiState.isShowingHomepage) {
+    if (navigationType == ReplyNavigationType.PERMANENT_NAVIGATION_DRAWER) {
         val navigationDrawerContentDescription = stringResource(R.string.navigation_drawer)
         PermanentNavigationDrawer(
             drawerContent = {
-                PermanentDrawerSheet(Modifier.width(dimensionResource(R.dimen.drawer_width)),
+                PermanentDrawerSheet(
+                    Modifier.width(dimensionResource(R.dimen.drawer_width)),
                     drawerContainerColor = MaterialTheme.colorScheme.inverseOnSurface
-                    ) {
+                ) {
                     NavigationDrawerContent(
                         selectedDestination = replyUiState.currentMailbox,
                         onTabPressed = onTabPressed,
@@ -111,6 +99,7 @@ fun ReplyHomeScreen(
         ) {
             ReplyAppContent(
                 navigationType = navigationType,
+                contentType = contentType,
                 replyUiState = replyUiState,
                 onTabPressed = onTabPressed,
                 onEmailCardPressed = onEmailCardPressed,
@@ -122,6 +111,7 @@ fun ReplyHomeScreen(
         if (replyUiState.isShowingHomepage) {
             ReplyAppContent(
                 navigationType = navigationType,
+                contentType = contentType,
                 replyUiState = replyUiState,
                 onTabPressed = onTabPressed,
                 onEmailCardPressed = onEmailCardPressed,
@@ -131,6 +121,7 @@ fun ReplyHomeScreen(
         } else {
             ReplyDetailsScreen(
                 replyUiState = replyUiState,
+                isFullScreen = true,
                 onBackPressed = onDetailScreenBackPressed,
                 modifier = modifier
             )
@@ -141,15 +132,14 @@ fun ReplyHomeScreen(
 @Composable
 private fun ReplyAppContent(
     navigationType: ReplyNavigationType,
+    contentType: ReplyContentType,
     replyUiState: ReplyUiState,
     onTabPressed: ((MailboxType) -> Unit),
     onEmailCardPressed: (Email) -> Unit,
     navigationItemContentList: List<NavigationItemContent>,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier)
-        
-    {
+    Box(modifier = modifier) {
         Row(modifier = Modifier.fillMaxSize()) {
             AnimatedVisibility(visible = navigationType == ReplyNavigationType.NAVIGATION_RAIL) {
                 val navigationRailContentDescription = stringResource(R.string.navigation_rail)
@@ -165,23 +155,33 @@ private fun ReplyAppContent(
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.inverseOnSurface)
             ) {
-                ReplyListOnlyContent(
-                    replyUiState = replyUiState,
-                    onEmailCardPressed = onEmailCardPressed,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = dimensionResource(R.dimen.email_list_only_horizontal_padding))
-                        .padding(top = dimensionResource(R.dimen.detail_subject_padding_end))
-                )
+                if (contentType == ReplyContentType.LIST_AND_DETAIL) {
+                    ReplyListAndDetailContent(
+                        replyUiState = replyUiState,
+                        onEmailCardPressed = onEmailCardPressed,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    ReplyListOnlyContent(
+                        replyUiState = replyUiState,
+                        onEmailCardPressed = onEmailCardPressed,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = dimensionResource(R.dimen.email_list_only_horizontal_padding))
+                            .padding(top = dimensionResource(R.dimen.detail_subject_padding_end))
+                    )
+                }
                 AnimatedVisibility(
                     visible = navigationType == ReplyNavigationType.BOTTOM_NAVIGATION
                 ) {
+                    val bottomNavigationContentDescription = stringResource(R.string.navigation_bottom)
                     ReplyBottomNavigationBar(
                         currentTab = replyUiState.currentMailbox,
                         onTabPressed = onTabPressed,
                         navigationItemContentList = navigationItemContentList,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag(bottomNavigationContentDescription)
                     )
                 }
             }
